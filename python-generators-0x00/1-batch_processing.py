@@ -1,29 +1,32 @@
 import mysql.connector
 
 def stream_users_in_batches(batch_size):
-    offset = 0
-    while True:
-        connection = mysql.connector.connect(
-            host='localhost',
-            user='root',
-            password='Juniorboy58*',
-            database='ALX_prodev'
-        )
-        cursor = connection.cursor(dictionary=True)
-        cursor.execute(f"SELECT * FROM user_data LIMIT {batch_size} OFFSET {offset}")
-        rows = cursor.fetchall()
-        cursor.close()
-        connection.close()
+    connection = mysql.connector.connect(
+        host='localhost',
+        user='root',
+        password='Juniorboy58*',
+        database='ALX_prodev'
+    )
 
-        if not rows:
-            break
+    cursor = connection.cursor(dictionary=True)
+    cursor.execute("SELECT * FROM user_data")
 
-        yield rows
-        offset += batch_size
+    batch = []
+    for row in cursor:
+        batch.append(row)
+        if len(batch) == batch_size:
+            yield batch
+            batch = []
+
+    if batch:
+        yield batch
+
+    cursor.close()
+    connection.close()
+    return
 
 def batch_processing(batch_size):
     for batch in stream_users_in_batches(batch_size):
-        for user in batch:
-            if user['age'] > 25:
-                yield user
-
+        filtered = [user for user in batch if user['age'] > 25]
+        for user in filtered:
+            print(user)
