@@ -1,16 +1,12 @@
-""" Project: python-generators-0x00
-    Author: Idah Lindiwe Khumalo
-
-    Handles DB creation and seeding"""
-
 import mysql.connector
 import csv
+import uuid
 
 def connect_db():
     return mysql.connector.connect(
         host="localhost",
         user="root",
-        password="root"
+        password="Juniorboy58*"  # Update this
     )
 
 def create_database(connection):
@@ -23,33 +19,34 @@ def connect_to_prodev():
     return mysql.connector.connect(
         host="localhost",
         user="root",
-        password="root",
+        password="Juniorboy58*",  # Update this
         database="ALX_prodev"
     )
 
 def create_table(connection):
     cursor = connection.cursor()
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS user_data (
-            user_id VARCHAR(255) PRIMARY KEY,
-            name VARCHAR(255) NOT NULL,
-            email VARCHAR(255) NOT NULL,
-            age DECIMAL NOT NULL,
-            INDEX (user_id)
-        )
-    ''')
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS user_data (
+        user_id VARCHAR(36) PRIMARY KEY,
+        name VARCHAR(255) NOT NULL,
+        email VARCHAR(255) NOT NULL,
+        age DECIMAL NOT NULL
+    )
+    """)
     connection.commit()
-    print("Table user_data created successfully")
     cursor.close()
+    print("Table user_data created successfully")
 
-def insert_data(connection, filename):
+def insert_data(connection, csv_file):
     cursor = connection.cursor()
-    with open(filename, newline='') as csvfile:
-        reader = csv.DictReader(csvfile)
+    with open(csv_file, newline='', encoding='utf-8') as file:
+        reader = csv.DictReader(file)
         for row in reader:
-            cursor.execute('''
+            user_id = str(uuid.uuid4())  # generate a unique UUID
+            cursor.execute("""
                 INSERT IGNORE INTO user_data (user_id, name, email, age)
                 VALUES (%s, %s, %s, %s)
-            ''', (row['user_id'], row['name'], row['email'], row['age']))
+            """, (user_id, row['name'], row['email'], row['age']))
     connection.commit()
     cursor.close()
+
