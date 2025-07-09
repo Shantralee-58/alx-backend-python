@@ -1,31 +1,34 @@
 #!/usr/bin/python3
-import sqlite3
+import mysql.connector
 import functools
 
-
 def with_db_connection(func):
-    """Decorator to open and close a database connection."""
+    """Decorator to handle DB connection automatically"""
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
-        conn = sqlite3.connect('users.db')
+        conn = mysql.connector.connect(
+            host="localhost",
+            user="root",
+            password="Juniorboy58*",
+            database="ALX_prodev"
+        )
         try:
-            result = func(conn, *args, **kwargs)
+            return func(conn, *args, **kwargs)
         finally:
             conn.close()
-        return result
     return wrapper
-
 
 @with_db_connection
 def get_user_by_id(conn, user_id):
-    """Fetch a user by ID using the provided connection."""
-    cursor = conn.cursor()
-    cursor.execute("SELECT * FROM users WHERE id = ?", (user_id,))
-    return cursor.fetchone()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute("SELECT * FROM user_data WHERE user_id = %s", (user_id,))
+    result = cursor.fetchone()
+    cursor.close()
+    return result
 
-
-# Example usage
+# Main test
 if __name__ == "__main__":
-    user = get_user_by_id(user_id=1)
+    test_id = "0076fa94-80e9-4c28-9c7b-4cdd1557e7fc" 
+    user = get_user_by_id(user_id=test_id)
     print(user)
 
