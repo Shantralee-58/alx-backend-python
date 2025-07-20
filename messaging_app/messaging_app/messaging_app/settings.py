@@ -20,13 +20,17 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-0-qv=1g4$!n4!z$!1491)xfe4$#juq6^vs6i%bkwjco@dxv#!6'
+SECRET_KEY = 'django-insecure-#u6e5@fes5-u#r)yfd7p9g-!5!ec)=t9(6nret#2_2g#rd=#*_'
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
 ALLOWED_HOSTS = []
 
+
+# Custom user model 
+
+AUTH_USER_MODEL = 'chats.User'
 
 # Application definition
 
@@ -40,6 +44,16 @@ INSTALLED_APPS = [
     'rest_framework',
     'chats',
 ]
+
+REST_FRAMEWORK = {
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+        'rest_framework.permissions.IsAuthenticated',
+    ],
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.SessionAuthentication',
+    ],
+}
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
