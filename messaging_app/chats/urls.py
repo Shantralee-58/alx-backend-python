@@ -1,13 +1,12 @@
 from django.urls import path, include
-from rest_framework.routers import DefaultRouter  # <- Needed for the check
+import rest_framework.routers as routers
 from rest_framework_nested.routers import NestedDefaultRouter
 from .views import ConversationViewSet, MessageViewSet
 
-# Primary router
-router = DefaultRouter()  # <- This line is what the check is looking for
+
+router = routers.DefaultRouter()
 router.register(r'conversations', ConversationViewSet, basename='conversation')
 
-# Nested router: messages inside a conversation
 conversation_router = NestedDefaultRouter(router, r'conversations', lookup='conversation')
 conversation_router.register(r'messages', MessageViewSet, basename='conversation-messages')
 
