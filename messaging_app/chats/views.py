@@ -1,11 +1,18 @@
 from rest_framework import viewsets, status, filters
 from rest_framework.response import Response
 from .models import Conversation, Message, User
+from django.http import HttpResponse
 from .serializers import ConversationSerializer, MessageSerializer, UserSerializer
+from rest_framework.permissions import IsAuthenticated
+from .permissions import IsParticipantOfConversation
+
+def home(request):
+    return HttpResponse("Welcome to the Messaging App API!")
 
 class ConversationViewSet(viewsets.ModelViewSet):
     queryset = Conversation.objects.all()
     serializer_class = ConversationSerializer
+    permission_classes = [IsParticipantOfConversation]
 
     def create(self, request):
         participants = request.data.get('participants')
@@ -23,6 +30,7 @@ class ConversationViewSet(viewsets.ModelViewSet):
 class MessageViewSet(viewsets.ModelViewSet):
     queryset = Message.objects.all()
     serializer_class = MessageSerializer
+    permission_classes = [IsParticipantOfConversation]
 
     def create(self, request):
         conversation_id = request.data.get('conversation')
