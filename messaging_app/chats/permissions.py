@@ -1,6 +1,7 @@
 from rest_framework.permissions import BasePermission
 from rest_framework import permissions
 
+
 class IsParticipantOfConversation(BasePermission):
     """
     Custom permission to only allow participants of a conversation
@@ -15,9 +16,15 @@ class IsParticipantOfConversation(BasePermission):
         # obj can be Conversation or Message
         if hasattr(obj, 'participants'):
             # obj is Conversation
-            return request.user in obj.participants.all()
+            is_participant = request.user in obj.participants.all()
         elif hasattr(obj, 'conversation'):
             # obj is Message, check if user is participant of the message's conversation
-            return request.user in obj.conversation.participants.all()
+            is_participant = request.user in obj.conversation.participants.all()
+        else:
+            return False
+
+        # Explicitly restrict methods: GET, POST, PUT, PATCH, DELETE
+        if request.method in ["GET", "POST", "PUT", "PATCH", "DELETE"]:
+            return is_participant
         return False
 
