@@ -5,7 +5,7 @@ from django.utils.translation import gettext_lazy as _
 
 # User model
 class User(AbstractUser):
-    user_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user_id = models.UUIDField(default=uuid.uuid4, editable=False, unique=True) 
     email = models.EmailField(_('email address'), unique=True)
     password = models.CharField(_('password'), max_length=128)
     first_name = models.CharField(_('first name'), max_length=150, blank=True)
