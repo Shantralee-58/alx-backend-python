@@ -1,104 +1,88 @@
-import os
-from django.http import HttpResponseForbidden
-from datetime import datetime
+import logging
+from datetime import datetime, time
+from django.http import HttpResponse
 from collections import defaultdict, deque
 
-# Global tracker: {ip: deque of request timestamps}
-_request_tracker = defaultdict(lambda: deque(maxlen=5))
-
-
-class OffensiveLanguageMiddleware:
-    """
-    Middleware that limits POST requests per IP to 5 per minute.
-    """
-    def __init__(self, get_response):
-        self.get_response = get_response
-
-    def __call__(self, request):
-        # Apply rate-limiting only on POST requests (sending messages)
-        if request.method == "POST":
-            ip = self._get_client_ip(request)
-            now = datetime.now()
-
-            # Remove timestamps older than 60 seconds
-            while _request_tracker[ip] and now - _request_tracker[ip][0] > timedelta(seconds=60):
-                _request_tracker[ip].popleft()
-
-            if len(_request_tracker[ip]) >= 5:
-                return HttpResponseForbidden(
-                    "Rate limit exceeded: Maximum 5 messages per minute per IP."
-                )
-
-            _request_tracker[ip].append(now)
-
-        return self.get_response(request)
-
-    def _get_client_ip(self, request):
-        """Extract client IP address."""
-        x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
-        if x_forwarded_for:
-            return x_forwarded_for.split(',')[0]
-        return request.META.get('REMOTE_ADDR')
+logging.basicConfig(
+    filename='requests.log',
+    level=logging.INFO,
+    format='%(message)s',
+)
 
 class RequestLoggingMiddleware:
-    """
-    Middleware that logs each request's timestamp, user, and path to requests.log
-    """
-
     def __init__(self, get_response):
         self.get_response = get_response
-        # log file will be stored at the project root (same level as manage.py)
-        self.log_file = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'requests.log')
 
-    def __call__(self, request):
-        user = request.user if hasattr(request, 'user') and request.user.is_authenticated else "Anonymous"
-        log_entry = f"{datetime.now()} - User: {user} - Path: {request.path}\n"
-
-        # Append the log entry to requests.log
-        with open(self.log_file, "a") as f:
-            f.write(log_entry)
-
+    def __call__(self, request,):
+        user = request.user if request.user.is_authenticated else 'Anonymous'
+        logging.info( f"{datetime.now()} - User: {user} - Path: {request.path}")
+        
         response = self.get_response(request)
         return response
 
 class RestrictAccessByTimeMiddleware:
-    """
-    Middleware that blocks requests outside 06:00 to 21:00 (6 AM to 9 PM)
-    """
-
     def __init__(self, get_response):
         self.get_response = get_response
-
+          
+        self.allowed_start = time(18, 0, 0)  
+        self.allowed_end = time(21, 0, 0)  
+    
     def __call__(self, request):
-        current_hour = datetime.now().hour
+        current_time = datetime.now().time()
 
-        # If current time is before 6 AM or 9 PM and later (>=21), block request
-        if current_hour < 6 or current_hour >= 21:
-            return HttpResponseForbidden(
-                "Chat access is allowed only between 6 AM and 9 PM."
+        if not (self.allowed_start <= current_time <= self.allowed_end):
+            return  HttpResponse(
+                "Access denied: Outside of allowed chat hours (6pm to 9pm)",
+                status = 403
             )
-
-        # Otherwise, continue
         return self.get_response(request)
-
-class RolepermissionMiddleware:
-    """
-    Middleware that checks if the user has the correct role.
-    Only admin (is_superuser) or moderator (is_staff) can access.
-    """
-    def __init__(self, get_response):
-        self.get_response = get_response
+    
+class OffensiveLanguageMiddleware:
+    def __init__(self, get_request):
+        self.get_response = get_request
+        self.message_log = defaultdict(deque)
+        self.limit = 5  
+        self.time_window = 60 
 
     def __call__(self, request):
-        restricted_paths = ["/admin-only/"]  # You can update paths to protect
+        if request.method == "POST":
+            ip = self.get_client_ip(request)
+            now = datetime.now().time
+            timestamps = self.message_log[ip]
 
-        # Check if request.path is restricted
-        if any(request.path.startswith(path) for path in restricted_paths):
-            user = getattr(request, "user", None)
-            if not (user and (user.is_staff or user.is_superuser)):
-                return HttpResponseForbidden(
-                    "You do not have permission to access this resource."
-                )
+            while timestamps and now - timestamps[0] > self.time_window:
+                timestamps.popleft()
 
+            if len(timestamps) >= self.limit:
+                return HttpResponse(
+                    "Rate limit exceeded: Max 5 messages per minute allowed.",
+                    status=429
+                )   
+            timestamps.append(now)
+        return self.get_response(request)    
+
+
+## ip request handling
+    def get_client_ip(self, request):
+        x_forwarded_for = request.META.get("HTTP_X_FORWARDED_FOR")
+        if x_forwarded_for:
+            return x_forwarded_for.split(',')[0]
+        return request.META.get("REMOTE_ADDR", "") 
+    
+class RolepermissionMiddleware:
+    def __init__(self, get_response):
+        self.get_response = get_response
+        self.INCLUDE_PATHS = ["/admin/"]
+
+    def __call__(self, request):
+        if request.path not in self.INCLUDE_PATHS:
+            return self.get_response(request)
+        
+        user = request.user
+
+        if not user.is_authenticated or getattr(user, "role", None) != "Admin":
+            return  HttpResponse(
+                "Access denied: only the admin is allowed",
+                status=403
+            )
         return self.get_response(request)
-
