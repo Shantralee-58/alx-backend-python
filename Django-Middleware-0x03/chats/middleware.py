@@ -81,7 +81,7 @@ class RestrictAccessByTimeMiddleware:
         # Otherwise, continue
         return self.get_response(request)
 
-class RolePermissionMiddleware:
+class RolepermissionMiddleware:
     """
     Middleware that checks if the user has the correct role.
     Only admin (is_superuser) or moderator (is_staff) can access.
