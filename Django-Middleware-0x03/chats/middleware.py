@@ -80,3 +80,25 @@ class RestrictAccessByTimeMiddleware:
 
         # Otherwise, continue
         return self.get_response(request)
+
+class RolePermissionMiddleware:
+    """
+    Middleware that checks if the user has the correct role.
+    Only admin (is_superuser) or moderator (is_staff) can access.
+    """
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        restricted_paths = ["/admin-only/"]  # You can update paths to protect
+
+        # Check if request.path is restricted
+        if any(request.path.startswith(path) for path in restricted_paths):
+            user = getattr(request, "user", None)
+            if not (user and (user.is_staff or user.is_superuser)):
+                return HttpResponseForbidden(
+                    "You do not have permission to access this resource."
+                )
+
+        return self.get_response(request)
+
