@@ -1,8 +1,44 @@
-from datetime import datetime
 import os
-
 from django.http import HttpResponseForbidden
 from datetime import datetime
+from collections import defaultdict, deque
+
+# Global tracker: {ip: deque of request timestamps}
+_request_tracker = defaultdict(lambda: deque(maxlen=5))
+
+
+class OffensiveLanguageMiddleware:
+    """
+    Middleware that limits POST requests per IP to 5 per minute.
+    """
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        # Apply rate-limiting only on POST requests (sending messages)
+        if request.method == "POST":
+            ip = self._get_client_ip(request)
+            now = datetime.now()
+
+            # Remove timestamps older than 60 seconds
+            while _request_tracker[ip] and now - _request_tracker[ip][0] > timedelta(seconds=60):
+                _request_tracker[ip].popleft()
+
+            if len(_request_tracker[ip]) >= 5:
+                return HttpResponseForbidden(
+                    "Rate limit exceeded: Maximum 5 messages per minute per IP."
+                )
+
+            _request_tracker[ip].append(now)
+
+        return self.get_response(request)
+
+    def _get_client_ip(self, request):
+        """Extract client IP address."""
+        x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+        if x_forwarded_for:
+            return x_forwarded_for.split(',')[0]
+        return request.META.get('REMOTE_ADDR')
 
 class RequestLoggingMiddleware:
     """
@@ -24,7 +60,6 @@ class RequestLoggingMiddleware:
 
         response = self.get_response(request)
         return response
-
 
 class RestrictAccessByTimeMiddleware:
     """
