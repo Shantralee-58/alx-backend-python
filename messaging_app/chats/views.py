@@ -54,35 +54,38 @@ class MessageViewSet(viewsets.ModelViewSet):
         return Message.objects.filter(conversation__participants=self.request.user)
     
 
-    def create(self, request, *args, **kwargs):
-        # Extract conversation ID from nested URL
-        conversation_pk = kwargs.get('conversation_pk') or request.data.get('conversation')
-        sender = request.user
-        body = request.data.get('message_body') or request.data.get('content')
+def create(self, request, *args, **kwargs):
+    # Support both nested route and JSON body
+    conversation_pk = (
+        kwargs.get('conversation_pk')
+        or request.data.get('conversation_id')
+        or request.data.get('conversation')
+    )
+    sender = request.user
+    body = request.data.get('message_body') or request.data.get('content')
 
-        if not (conversation_pk and body):
-            return Response({"error": "Missing fields"}, status=status.HTTP_400_BAD_REQUEST)
+    if not (conversation_pk and body):
+        return Response({"error": "Missing fields"}, status=status.HTTP_400_BAD_REQUEST)
 
-        try:
-            conversation = Conversation.objects.get(pk=conversation_pk)
-        except Conversation.DoesNotExist:
-            return Response({"error": "Invalid conversation"}, status=status.HTTP_404_NOT_FOUND)
+    try:
+        conversation = Conversation.objects.get(pk=conversation_pk)
+    except Conversation.DoesNotExist:
+        return Response({"error": "Invalid conversation"}, status=status.HTTP_404_NOT_FOUND)
 
-        # Ensure the current user is a participant
-        if sender not in conversation.participants.all():
-            return Response(
-                {"error": "You are not allowed to post in this conversation"},
-                status=status.HTTP_403_FORBIDDEN
-            )
-
-        # Create message
-        message = Message.objects.create(
-            conversation=conversation,
-            sender=sender,
-            message_body=body
+    # Ensure the current user is a participant
+    if sender not in conversation.participants.all():
+        return Response(
+            {"error": "You are not allowed to post in this conversation"},
+            status=status.HTTP_403_FORBIDDEN
         )
 
-        serializer = self.get_serializer(message)
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
+    # Create message
+    message = Message.objects.create(
+        conversation=conversation,
+        sender=sender,
+        message_body=body
+    )
 
+    serializer = self.get_serializer(message)
+    return Response(serializer.data, status=status.HTTP_201_CREATED)
 
