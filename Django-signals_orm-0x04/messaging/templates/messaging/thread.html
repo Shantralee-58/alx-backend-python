@@ -1,0 +1,12 @@
+{% macro render_thread(thread) %}
+    <div style="margin-left: 20px; border-left: 1px solid #ccc; padding-left: 10px;">
+        <p><strong>{{ thread.message.sender.username }}</strong>: {{ thread.message.content }}</p>
+        {% for reply in thread.replies %}
+            {{ render_thread(reply) }}
+        {% endfor %}
+    </div>
+{% endmacro %}
+
+<h2>Threaded Conversation</h2>
+{{ render_thread(thread) }}
+
