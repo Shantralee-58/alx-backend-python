@@ -6,13 +6,17 @@ from django.contrib.auth.models import User
 from django.shortcuts import render, get_object_or_404
 from .models import Message
 
+
 @login_required
 
 def unread_messages(request):
-    # Use custom manager to get unread messages for this user
-    messages = Message.unread.for_user(request.user)
+    # Use the custom manager method explicitly
+    messages = Message.unread.unread_for_user(request.user).only(
+        'id', 'content', 'timestamp', 'sender'
+    )
 
     return render(request, 'messaging/unread_messages.html', {'messages': messages})
+ 
 
 
 def delete_user(request):
