@@ -40,3 +40,18 @@ def message_thread_view(request, message_id):
 
     return render(request, 'messaging/thread.html', {'thread': thread})
 
+def user_messages(request):
+    # Fetch messages sent by the current logged-in user,
+    # use select_related for 'receiver' and 'parent_message' to avoid extra queries,
+    # prefetch replies if needed.
+    messages = (
+        Message.objects.filter(sender=request.user)
+        .select_related('receiver', 'parent_message')
+        .prefetch_related('message_set')  # message_set is the reverse relation for replies
+    )
+
+    context = {
+        'messages': messages,
+    }
+    return render(request, 'messaging/user_messages.html', context)
+
