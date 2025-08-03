@@ -7,5 +7,6 @@ urlpatterns = [
     path('delete_user/', views.delete_user, name='delete_user'),
     path('login/', auth_views.LoginView.as_view(), name='login'),
     path('unread_messages/', views.unread_messages, name='unread_messages'),
+    path('conversation_messages/', views.conversation_messages, name='conversation_messages'),
 ]
 

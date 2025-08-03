@@ -5,9 +5,20 @@ from django.http import HttpResponse
 from django.contrib.auth.models import User
 from django.shortcuts import render, get_object_or_404
 from .models import Message
+from django.views.decorators.cache import cache_page
 
 
 @login_required
+@cache_page(60)  # Caches for 60 seconds
+def conversation_messages(request):
+    # Fetch all messages involving the current user
+    messages = (
+        Message.objects.filter(receiver=request.user)
+        .select_related('sender')
+        .order_by('-timestamp')
+    )
+    return render(request, 'messaging/conversation_messages.html', {'messages': messages})
+
 
 def unread_messages(request):
     # Use the custom manager method explicitly
