@@ -1,6 +1,15 @@
 from django.db import models
 from django.contrib.auth.models import User
 
+class UnreadMessagesManager(models.Manager):
+    def for_user(self, user):
+        # Optimized query: only retrieve the fields we need
+        return (
+            self.filter(receiver=user, read=False)
+            .select_related('sender')
+            .only('id', 'content', 'timestamp', 'sender')  # optimize
+        )
+
 class Message(models.Model):
     sender = models.ForeignKey(User, related_name='sent_messages', on_delete=models.CASCADE)
     receiver = models.ForeignKey(User, related_name='received_messages', on_delete=models.CASCADE)
@@ -9,6 +18,9 @@ class Message(models.Model):
     edited = models.BooleanField(default=False)
     edited_by = models.ForeignKey(User, null=True, blank=True, related_name='edited_messages', on_delete=models.SET_NULL)
     parent_message = models.ForeignKey('self', null=True, blank=True, related_name='replies', on_delete=models.CASCADE)
+    read = models.BooleanField(default=False)
+    objects = models.Manager()
+    unread = UnreadMessagesManager()
 
     def __str__(self):
         return f"From {self.sender} to {self.receiver} at {self.timestamp}"

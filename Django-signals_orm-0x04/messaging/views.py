@@ -7,6 +7,14 @@ from django.shortcuts import render, get_object_or_404
 from .models import Message
 
 @login_required
+
+def unread_messages(request):
+    # Use custom manager to get unread messages for this user
+    messages = Message.unread.for_user(request.user)
+
+    return render(request, 'messaging/unread_messages.html', {'messages': messages})
+
+
 def delete_user(request):
     user = request.user
     user.delete()
