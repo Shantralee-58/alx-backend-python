@@ -1,21 +1,27 @@
-# Use official Python 3.10 base image
+
+# Dockerfile
+
+# 1. Use official Python base image
 FROM python:3.10
 
-# Set working directory inside the container
+# 2. Set working directory inside the container
 WORKDIR /app
 
-# Copy requirements.txt first to leverage Docker cache
-COPY requirements.txt .
+# 3. Prevent Python from writing .pyc files and buffering stdout/stderr
+ENV PYTHONDONTWRITEBYTECODE 1
+ENV PYTHONUNBUFFERED 1
 
-# Install dependencies
-RUN pip install --no-cache-dir -r requirements.txt
+# 4. Install dependencies
+COPY requirements.txt /app/
+RUN pip install --upgrade pip
+RUN pip install -r requirements.txt
+RUN apt-get update && apt-get install -y python3-dev default-libmysqlclient-dev build-essential
+# 5. Copy project files into the container
+COPY . /app/
 
-# Copy the rest of the application code
-COPY . .
+# 6. Expose port for Django
+EXPOSE -p 8000
 
-# Expose port 8000 for Django
-EXPOSE 8000
-
-# Run Django development server
+# 7. Run Django development server
 CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
 
