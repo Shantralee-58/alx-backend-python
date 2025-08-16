@@ -1,0 +1,16 @@
+#!/bin/bash
+
+# Scale the deployment to 3 replicas
+kubectl scale deployment messaging-app-deployment --replicas=3
+
+# Wait a few seconds and show pods
+sleep 5
+kubectl get pods
+
+# Optional: Perform load testing with wrk
+# Make sure wrk is installed and your Django app is exposed to NodePort or Ingress
+# Example: wrk -t2 -c10 -d10s http://<minikube-ip>:8000/
+
+# Show resource usage
+kubectl top pods
+
