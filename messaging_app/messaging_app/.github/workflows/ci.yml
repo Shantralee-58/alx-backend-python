@@ -38,15 +38,29 @@ jobs:
           source venv/bin/activate
           pip install --upgrade pip
           pip install -r messaging_app/requirements.txt
+          pip install flake8 coverage pytest-cov
 
-      - name: Run tests
+      - name: Run flake8 Linting
         run: |
           source venv/bin/activate
-          pytest --junitxml=report.xml
+          flake8 messaging_app --exit-zero
+        continue-on-error: false   # This will fail the build if lint errors are detected
+
+      - name: Run tests with coverage
+        run: |
+          source venv/bin/activate
+          coverage run -m pytest --junitxml=report.xml --cov=messaging_app
+          coverage xml -o coverage.xml
 
       - name: Upload test report
         uses: actions/upload-artifact@v3
         with:
           name: test-report
           path: report.xml
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v3
+        with:
+          name: coverage-report
+          path: coverage.xml
 
