@@ -13,21 +13,19 @@ pipeline {
         }
 
         stage('Install Dependencies') {
-            steps {
-                sh 'python3 -m venv venv'
-                sh '. venv/bin/activate && pip install -r messaging_app/requirements.txt'
-            }
-        }
+    steps {
+        sh 'python -m venv venv'
+        sh 'venv\\Scripts\\activate && pip install -r messaging_app/requirements.txt'
+    }
+}
 
-        stage('Run Tests') {
-            steps {
-                sh '. venv/bin/activate && pytest --junitxml=report.xml'
-            }
-            post {
-                always {
-                    junit 'report.xml'
-                }
-            }
+stage('Run Tests') {
+    steps {
+        sh 'venv\\Scripts\\activate && pytest --junitxml=report.xml'
+    }
+    post {
+        always {
+            junit 'report.xml'
         }
     }
 }
